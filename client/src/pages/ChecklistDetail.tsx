@@ -129,6 +129,11 @@ export default function ChecklistDetail() {
 
   // File-capture fallback: works on HTTP (uses native camera intent, not getUserMedia)
   // and on HTTPS alike. Best-effort for non-HTTPS mobile users.
+  //
+  // Strategy: try the native BarcodeDetector API first (Chrome 83+, Safari 16.4+,
+  // Edge) — it ships with the browser, is optimized for 1D barcodes, and
+  // handles real-world photos much better than the JS fallback. Fall back to
+  // html5-qrcode on older browsers.
   const handleFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Always reset the input so the same file can be re-picked
@@ -143,23 +148,54 @@ export default function ChecklistDetail() {
 
     setDecodingFile(true);
     try {
-      // Clean up any prior file-scanner instance before creating a new one
-      if (fileScannerRef.current) {
-        try { await fileScannerRef.current.clear(); } catch { /* ignore */ }
-        fileScannerRef.current = null;
+      let decoded: string | null = null;
+
+      // --- Primary: native BarcodeDetector ---
+      const BD = (window as any).BarcodeDetector;
+      if (typeof BD === "function") {
+        try {
+          const detector = new BD({
+            formats: [
+              "ean_13", "ean_8", "upc_a", "upc_e", "upc_ean_extension",
+              "code_128", "code_39", "code_93", "codabar", "itf",
+              "qr_code", "data_matrix", "pdf417", "aztec",
+            ],
+          });
+          const bitmap = await createImageBitmap(file);
+          const results = await detector.detect(bitmap);
+          if (results.length > 0) {
+            decoded = results[0].rawValue;
+          }
+        } catch (e) {
+          // BarcodeDetector not happy — try fallback
+          console.warn("[PhotoScan] BarcodeDetector failed, falling back:", e);
+        }
       }
-      const scanner = new Html5Qrcode("qr-file-scanner", { verbose: false });
-      fileScannerRef.current = scanner;
-      // scanFileV2 accepts formatsToSupport; the basic scanFile() is QR-only.
-      // cast to any because html5-qrcode's type defs for scanFileV2 are
-      // historically a bit loose; runtime API is stable in 2.3.x.
-      const decodedText = await (scanner as any).scanFileV2(file, false, {
-        formatsToSupport: SUPPORTED_FORMATS,
-      });
-      await handleScanRef.current?.(decodedText);
+
+      // --- Fallback: html5-qrcode (older browsers without BarcodeDetector) ---
+      if (!decoded) {
+        // Clean up any prior file-scanner instance before creating a new one
+        if (fileScannerRef.current) {
+          try { await fileScannerRef.current.clear(); } catch { /* ignore */ }
+          fileScannerRef.current = null;
+        }
+        const scanner = new Html5Qrcode("qr-file-scanner", { verbose: false });
+        fileScannerRef.current = scanner;
+        decoded = await scanner.scanFile(file, false);
+      }
+
+      if (decoded) {
+        await handleScanRef.current?.(decoded);
+      } else {
+        toast.error("未能识别图片中的条码", {
+          description: "请确保条码平整、光线均匀、占据画面 1/3 以上",
+        });
+      }
     } catch (error) {
       console.warn("[PhotoScan] failed:", error);
-      toast.error("未能识别图片中的条码");
+      toast.error("未能识别图片中的条码", {
+        description: "请确保条码平整、光线均匀、占据画面 1/3 以上",
+      });
     } finally {
       setDecodingFile(false);
     }
