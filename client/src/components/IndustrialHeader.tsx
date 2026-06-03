@@ -9,9 +9,9 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: "工作台", href: "/", index: "01" },
-  { label: "上传清单", href: "/upload", index: "02" },
-  { label: "我的清单", href: "/checklists", index: "03" },
+  { label: "工作台", href: "/barcode/", index: "01" },
+  { label: "上传清单", href: "/barcode/upload", index: "02" },
+  { label: "我的清单", href: "/barcode/checklists", index: "03" },
 ];
 
 interface IndustrialHeaderProps {
@@ -28,7 +28,7 @@ export function IndustrialHeader({ sectionLabel, hideNav = false }: IndustrialHe
   const handleLogout = async () => {
     try {
       await logout();
-      window.location.href = "/login";
+      window.location.href = "/barcode/login";
     } catch (err) {
       toast.error("退出失败");
     }
@@ -73,7 +73,7 @@ export function IndustrialHeader({ sectionLabel, hideNav = false }: IndustrialHe
 
       {/* Brand bar */}
       <div className="container flex items-end justify-between py-5">
-        <Link href="/">
+        <Link href="/barcode/">
           <a className="block group">
             <div className="font-display text-3xl sm:text-4xl leading-none tracking-tight">
               条码核对系统

@@ -4,10 +4,12 @@ import path from "node:path";
 import { defineConfig } from "vite";
 
 // Simplified Vite config for Docker builds (no Manus-specific plugins)
+
 const plugins = [react(), tailwindcss()];
 
 export default defineConfig({
   plugins,
+  base: "/barcode/",
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

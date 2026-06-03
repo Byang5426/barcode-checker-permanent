@@ -23,7 +23,7 @@ export default function Login() {
         await loginMutation.mutateAsync({ username, password });
         toast.success("登录成功");
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/barcode/";
         }, 400);
       } else {
         await registerMutation.mutateAsync({ username, password, name });

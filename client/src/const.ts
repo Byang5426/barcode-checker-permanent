@@ -9,7 +9,7 @@ export const getLoginUrl = () => {
 
   // Fallback: no Manus OAuth configured → use local /login route
   if (!oauthPortalUrl || !appId) {
-    return "/login";
+    return "/barcode/login";
   }
 
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
