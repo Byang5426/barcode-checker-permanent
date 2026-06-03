@@ -2,10 +2,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Camera, CheckCircle2, AlertCircle, RotateCcw, Clock, ArrowRight } from "lucide-react";
+import { Loader2, Camera, CheckCircle2, AlertCircle, RotateCcw, Clock, ArrowRight, ImageUp } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { IndustrialHeader } from "@/components/IndustrialHeader";
 
@@ -35,7 +35,10 @@ export default function ChecklistDetail() {
   const [scanning, setScanning] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [showScanHistory, setShowScanHistory] = useState(false);
+  const [decodingFile, setDecodingFile] = useState(false);
   const qrCodeRef = useRef<Html5Qrcode | null>(null);
+  const fileScannerRef = useRef<Html5Qrcode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const handleScanRef = useRef<((barcode: string) => Promise<void>) | null>(null);
 
   // Camera lifecycle — preserved logic, only the visual layer changes
@@ -88,14 +91,57 @@ export default function ChecklistDetail() {
     };
   }, [cameraActive]);
 
-  const handleScan = async (barcode: string) => {
+  // Cleanup the file-scanner Html5Qrcode instance on unmount
+  useEffect(() => {
+    return () => {
+      if (fileScannerRef.current) {
+        fileScannerRef.current.clear().catch(() => {});
+        fileScannerRef.current = null;
+      }
+    };
+  }, []);
+
+  // File-capture fallback: works on HTTP (uses native camera intent, not getUserMedia)
+  // and on HTTPS alike. Best-effort for non-HTTPS mobile users.
+  const handleFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Always reset the input so the same file can be re-picked
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+
+    // Stop the live camera first to free the device and avoid conflicts
+    if (cameraActive) {
+      setCameraActive(false);
+      await new Promise((r) => setTimeout(r, 120));
+    }
+
+    setDecodingFile(true);
+    try {
+      // Clean up any prior file-scanner instance before creating a new one
+      if (fileScannerRef.current) {
+        try { await fileScannerRef.current.clear(); } catch { /* ignore */ }
+        fileScannerRef.current = null;
+      }
+      const scanner = new Html5Qrcode("qr-file-scanner", { verbose: false });
+      fileScannerRef.current = scanner;
+      const decodedText = await scanner.scanFile(file, false);
+      await handleScanRef.current?.(decodedText);
+    } catch (error) {
+      console.warn("[PhotoScan] failed:", error);
+      toast.error("未能识别图片中的条码");
+    } finally {
+      setDecodingFile(false);
+    }
+  };
+
+  const handleScan = async (barcode: string, methodOverride?: "camera" | "manual") => {
     if (!barcode.trim() || !checklistId) return;
     setScanning(true);
     try {
       const result = await scanMutation.mutateAsync({
         checklistId,
         barcode: barcode.trim(),
-        scanMethod: cameraActive ? "camera" : "manual",
+        scanMethod: methodOverride ?? (cameraActive ? "camera" : "manual"),
       });
       if (result.success) {
         toast.success(
@@ -253,24 +299,65 @@ export default function ChecklistDetail() {
                 </div>
               </div>
 
-              {/* Camera toggle */}
+              {/* Camera toggle + Photo capture fallback */}
               <div className="stagger-in" style={{ ["--i" as any]: 3 }}>
-                <button
-                  onClick={() => setCameraActive((prev) => !prev)}
-                  className={`w-full h-12 flex items-center justify-center gap-2 font-medium tracking-wide border transition-colors ${
-                    cameraActive
-                      ? "bg-accent text-accent-foreground border-accent"
-                      : "bg-foreground text-background border-foreground hover:bg-accent hover:border-accent"
-                  }`}
-                >
-                  <Camera className="w-4 h-4" />
-                  {cameraActive ? "关闭摄像头" : "打开摄像头"}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setCameraActive((prev) => !prev)}
+                    disabled={decodingFile}
+                    className={`h-12 flex items-center justify-center gap-2 font-medium tracking-wide border transition-colors disabled:opacity-30 ${
+                      cameraActive
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-foreground text-background border-foreground hover:bg-accent hover:border-accent"
+                    }`}
+                  >
+                    <Camera className="w-4 h-4" />
+                    {cameraActive ? "关闭" : "实时扫码"}
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={scanning || decodingFile || cameraActive}
+                    title={cameraActive ? "请先关闭实时扫码" : "拍摄或选择图片识别条码（HTTP 下也能用）"}
+                    className="h-12 flex items-center justify-center gap-2 font-medium tracking-wide border border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background disabled:opacity-30"
+                  >
+                    {decodingFile ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImageUp className="w-4 h-4" />
+                    )}
+                    拍照识别
+                  </button>
+                </div>
                 {cameraActive && (
                   <div className="mt-3 border border-foreground overflow-hidden scan-line">
                     <div id="qr-reader" className="w-full" />
                   </div>
                 )}
+                {/* Hidden inputs for the photo-capture fallback (HTTP-friendly) */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  // @ts-expect-error — non-standard but supported by all major mobile browsers
+                  capture="environment"
+                  onChange={handleFileSelected}
+                  className="hidden"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+                <div
+                  id="qr-file-scanner"
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    top: "0",
+                    width: "1px",
+                    height: "1px",
+                    overflow: "hidden",
+                    pointerEvents: "none",
+                  }}
+                />
               </div>
 
               {/* Manual input */}
