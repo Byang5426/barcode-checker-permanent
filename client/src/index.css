@@ -1,0 +1,349 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================================================================
+   INDUSTRIAL EDITORIAL — DESIGN TOKENS
+   Swiss technical-manual aesthetic. Paper × ink × signal red.
+   ========================================================================= */
+
+@theme inline {
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+
+  --font-display: "Newsreader", "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+  --color-signal: var(--signal);
+  --color-warn: var(--warn);
+  --color-verify: var(--verify);
+  --color-paper-grain: var(--paper-grain);
+}
+
+:root {
+  /* === Surfaces (paper) === */
+  --background: #f5f1e8;            /* warm cream paper */
+  --foreground: #0a0a0a;            /* near-black ink */
+  --card: #ebe5d6;                  /* slightly darker paper for cards */
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;               /* pure white for popovers */
+  --popover-foreground: #0a0a0a;
+
+  /* === Primary (ink) === */
+  --primary: #0a0a0a;
+  --primary-foreground: #f5f1e8;
+
+  /* === Secondary (subtle paper) === */
+  --secondary: #ebe5d6;
+  --secondary-foreground: #0a0a0a;
+
+  /* === Muted === */
+  --muted: #ebe5d6;
+  --muted-foreground: #525252;
+
+  /* === Accent (signal red) === */
+  --accent: #e63946;
+  --accent-foreground: #f5f1e8;
+
+  /* === Destructive === */
+  --destructive: #e63946;
+  --destructive-foreground: #f5f1e8;
+
+  /* === Borders & inputs (sharp, no rounding) === */
+  --border: #0a0a0a;
+  --input: #0a0a0a;
+  --ring: #e63946;
+
+  /* === Industrial palette === */
+  --signal: #e63946;                /* primary accent — sparingly */
+  --warn: #f4c20d;                  /* safety yellow */
+  --verify: #1b7a3e;                /* verified green (used minimally) */
+  --paper-grain: rgba(10, 10, 10, 0.04);
+
+  --radius: 0;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f1e8;
+  --card: #141414;
+  --card-foreground: #f5f1e8;
+  --popover: #141414;
+  --popover-foreground: #f5f1e8;
+  --primary: #f5f1e8;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #f5f1e8;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --accent: #e63946;
+  --accent-foreground: #f5f1e8;
+  --destructive: #e63946;
+  --destructive-foreground: #f5f1e8;
+  --border: #f5f1e8;
+  --input: #f5f1e8;
+  --ring: #e63946;
+  --signal: #e63946;
+  --warn: #f4c20d;
+  --verify: #4ade80;
+}
+
+/* =========================================================================
+   GLOBAL BASE
+   ========================================================================= */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      /* paper grain noise */
+      url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+    background-size: 200px 200px;
+  }
+  /* Display font for hero/numerals */
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+  /* Mono for technical data */
+  .font-mono, code, kbd, pre, samp {
+    font-family: var(--font-mono);
+  }
+  /* Tabular numerals for big numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  /* All caps small label */
+  .label-cap {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+  /* Headings default to display serif */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* =========================================================================
+   COMPONENT LAYER — editorial primitives
+   ========================================================================= */
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+  .flex { min-height: 0; min-width: 0; }
+  @media (min-width: 640px) {
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
+  }
+
+  /* Sharp card with optional ink border */
+  .card-sharp {
+    @apply bg-card text-card-foreground;
+    border: 1px solid var(--border);
+  }
+
+  /* "Ink" button — solid black, cream text */
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium tracking-wide;
+    background: #0a0a0a;
+    color: #f5f1e8;
+    border: 1px solid #0a0a0a;
+    transition: transform 200ms cubic-bezier(0.65, 0, 0.35, 1), background 200ms;
+  }
+  .btn-ink:hover { background: #e63946; border-color: #e63946; }
+  .btn-ink:active { transform: translateY(1px); }
+
+  /* "Outline" button — sharp bordered, no fill */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium tracking-wide;
+    background: transparent;
+    color: #0a0a0a;
+    border: 1px solid #0a0a0a;
+    transition: background 200ms, color 200ms;
+  }
+  .btn-outline:hover { background: #0a0a0a; color: #f5f1e8; }
+
+  /* "Ghost" button — text only, underline on hover */
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 text-sm font-medium tracking-wide;
+    background: transparent;
+    color: #0a0a0a;
+    border: none;
+    position: relative;
+    padding: 0.25rem 0;
+  }
+  .btn-ghost::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: #0a0a0a;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 250ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .btn-ghost:hover::after { transform: scaleX(1); }
+
+  /* Section divider — hairline */
+  .hairline { border-top: 1px solid var(--border); }
+  .hairline-b { border-bottom: 1px solid var(--border); }
+
+  /* Numbered tag — like a technical manual */
+  .tag-num {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    color: #525252;
+  }
+
+  /* Big editorial number */
+  .num-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+
+  /* Underline-on-hover link */
+  .link-ink {
+    color: #0a0a0a;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 200ms;
+  }
+  .link-ink:hover { color: #e63946; }
+}
+
+/* =========================================================================
+   ANIMATION — restrained vocabulary
+   ========================================================================= */
+
+@layer utilities {
+  /* Stagger entrance — apply with style="--i: <n>" on children */
+  .stagger-in {
+    animation: stagger-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+  @keyframes stagger-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Page-load fade (no movement, for the whole shell) */
+  .page-in { animation: page-in 400ms ease-out both; }
+  @keyframes page-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Scan line sweep — for the camera/active states */
+  .scan-line {
+    position: relative;
+    overflow: hidden;
+  }
+  .scan-line::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(230, 57, 70, 0.4) 50%, transparent 100%);
+    height: 2px;
+    animation: scan 1.6s linear infinite;
+  }
+  @keyframes scan {
+    0%   { transform: translateY(-100%); }
+    100% { transform: translateY(2000%); }
+  }
+
+  /* Pulse for live indicators */
+  .pulse-dot {
+    width: 6px; height: 6px;
+    background: #e63946;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  /* Marquee for ticker numbers */
+  .ticker-up { animation: ticker 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes ticker {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Progress bar fill */
+  .progress-fill {
+    transition: width 800ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
