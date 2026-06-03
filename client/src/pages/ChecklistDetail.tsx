@@ -6,8 +6,29 @@ import { Loader2, Camera, CheckCircle2, AlertCircle, RotateCcw, Clock, ArrowRigh
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, type ChangeEvent } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { IndustrialHeader } from "@/components/IndustrialHeader";
+
+// Retail-oriented barcode formats.
+// Without this, html5-qrcode defaults to QR_CODE-only and silently
+// rejects every 1D barcode (EAN-13, CODE-128, etc.) — which is what
+// physical product packaging uses.
+const SUPPORTED_FORMATS: Html5QrcodeSupportedFormats[] = [
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.CODE_93,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.CODABAR,
+  Html5QrcodeSupportedFormats.DATA_MATRIX,
+  Html5QrcodeSupportedFormats.PDF_417,
+  Html5QrcodeSupportedFormats.AZTEC,
+];
 
 export default function ChecklistDetail() {
   const { user, loading: authLoading } = useAuth();
@@ -70,7 +91,12 @@ export default function ChecklistDetail() {
         scanner = new Html5Qrcode("qr-reader");
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            fps: 15,
+            // No `qrbox` — let the scanner search the whole frame so it can
+            // find 1D barcodes that may be off-center, tilted, or far away.
+            formatsToSupport: SUPPORTED_FORMATS,
+          },
           (decodedText) => handleScanRef.current?.(decodedText),
           () => {}
         );
@@ -124,7 +150,12 @@ export default function ChecklistDetail() {
       }
       const scanner = new Html5Qrcode("qr-file-scanner", { verbose: false });
       fileScannerRef.current = scanner;
-      const decodedText = await scanner.scanFile(file, false);
+      // scanFileV2 accepts formatsToSupport; the basic scanFile() is QR-only.
+      // cast to any because html5-qrcode's type defs for scanFileV2 are
+      // historically a bit loose; runtime API is stable in 2.3.x.
+      const decodedText = await (scanner as any).scanFileV2(file, false, {
+        formatsToSupport: SUPPORTED_FORMATS,
+      });
       await handleScanRef.current?.(decodedText);
     } catch (error) {
       console.warn("[PhotoScan] failed:", error);
