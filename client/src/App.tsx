@@ -29,7 +29,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!user) {
-    setLocation(`${APP_BASE}/login`);
+    setLocation("/login");
     return null;
   }
 
