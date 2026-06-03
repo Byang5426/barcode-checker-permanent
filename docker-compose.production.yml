@@ -1,0 +1,81 @@
+# Production docker-compose for byang.top
+# 区别于本地 dev 版:
+#   - 3306 不暴露公网（只在内部网络）
+#   - 强密码走 .env.production（不入 git）
+#   - 加资源限制（防止吃掉全部 1.8GB 内存）
+#   - 容器异常自动重启
+#   - 加了 named volume 持久化 MySQL 数据
+#
+# 关键：所有密钥用 env_file 注入，environment 块只放硬编码值
+# （不要用 ${VAR} 从 host 拿，因为 host shell 没有这些 var）
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: barcode-mysql-prod
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=caching_sha2_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - barcode_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: barcode-checker-permanent:prod
+    container_name: barcode-app-prod
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file: .env.production
+    environment:
+      # 这些从 .env.production 读
+      # DATABASE_URL=${DATABASE_URL}  # 写 env_file 即可，不要用 ${} 插值
+      # JWT_SECRET=${JWT_SECRET}
+      # 这些是硬编码
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - barcode_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mysql_prod_data:
+    name: barcode_mysql_prod_data
+
+networks:
+  barcode_net:
+    name: barcode_prod_net
+    driver: bridge
